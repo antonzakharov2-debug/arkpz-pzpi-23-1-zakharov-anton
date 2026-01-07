@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <title>FarmEnviroControl</title>
+</head>
+<body>
+<div class="site-header">
+  <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl</h1></div>
+  <nav><a href="register.html" class="muted">Sign up</a></nav>
+</div>
+<div class="container">
+  <div class="card">
+    <h2>Login</h2>
+    <div class="muted">Enter your email and password</div>
+    <div style="margin-top:12px">
+      <input id="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
+      <button class="btn btn-primary" onclick="login()">Login</button>
+      <p class="muted" style="margin-top:10px">Don't have an account? <a href="register.html">Register</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+// редірект якщо вже залогінений адмін
+const user = JSON.parse(localStorage.getItem("user"));
+if (user && user.role === "admin") {
+  location.href = "admin.html";
+}
+
+async function login() {
+  const response = await post("/auth/login", {
+    email: email.value,
+    password: password.value
+  });
+
+  if (response.user) {
+    localStorage.setItem("user", JSON.stringify(response.user));
+    if (response.user.role === "admin") {
+      location.href = "admin.html";
+    } else {
+      location.href = "profile.html";
+    }
+  } else {
+    alert(response.message);
+  }
+}
+</script>
+</body>
+</html>
