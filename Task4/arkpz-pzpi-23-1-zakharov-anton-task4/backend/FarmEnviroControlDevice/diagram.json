@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "author": "FarmEnviroControl",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": -14.5, "left": -158.6, "attrs": {} },
+    { "type": "wokwi-ds18b20", "id": "temp", "top": -90, "left": 150, "attrs": {} },
+    { "type": "wokwi-led", "id": "led", "top": -90, "left": -34.6, "attrs": { "color": "red" } },
+    { "type": "wokwi-buzzer", "id": "buzz", "top": -170.4, "left": -228.6, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 138.65,
+      "left": -20.6,
+      "rotate": 180,
+      "attrs": { "value": "4700" }
+    },
+    { "type": "board-ds18b20", "id": "temp1", "top": -20.33, "left": 52.08, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 100.25,
+      "left": 8.2,
+      "rotate": 180,
+      "attrs": { "value": "4700" }
+    }
+  ],
+  "connections": [
+    [ "esp:3V3", "temp:VCC", "red", [] ],
+    [ "esp:GND", "temp:GND", "black", [] ],
+    [ "esp:4", "temp:DQ", "green", [] ],
+    [ "esp:2", "led:A", "green", [] ],
+    [ "led:C", "esp:GND", "black", [] ],
+    [ "esp:15", "buzz:+", "green", [] ],
+    [ "buzz:-", "esp:GND", "black", [] ],
+    [ "temp1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "led:C", "esp:GND.1", "green", [ "v0" ] ],
+    [ "temp1:DQ", "r2:1", "green", [ "v0" ] ],
+    [ "temp1:VCC", "r1:1", "red", [ "v0" ] ],
+    [ "r1:2", "esp:3V3", "green", [ "v0" ] ],
+    [ "buzz:1", "esp:GND.1", "green", [ "v0" ] ],
+    [ "led:A", "esp:D2", "green", [ "v0" ] ],
+    [ "buzz:2", "esp:D4", "green", [ "v0" ] ],
+    [ "r2:2", "esp:D4", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

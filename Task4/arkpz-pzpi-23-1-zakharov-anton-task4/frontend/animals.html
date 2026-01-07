@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Register Animal — FarmEnviroControl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="site-header">
+  <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl</h1></div>
+  <nav><a href="profile.html" class="muted">Profile</a></nav>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Register Animal</h2>
+
+    <form id="animalForm">
+      <input type="number" id="animalNumber" placeholder="Animal number" required>
+
+      <select id="species">
+        <option value="Cow">Cow</option>
+        <option value="Chicken">Chicken</option>
+        <option value="Pig">Pig</option>
+        <option value="Sheep">Sheep</option>
+        <option value="Goat">Goat</option>
+      </select>
+
+      <select id="gender">
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+      </select>
+
+      <input type="number" id="age" placeholder="Age (years)" min="0">
+
+      <select id="farmSelect"></select>
+
+      <button class="btn btn-primary" type="submit">Register</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Search Animals</h3>
+    <div id="searchForm" class="row">
+      <input type="number" id="searchNumber" placeholder="Animal number">
+      <select id="searchSpecies">
+        <option value="">-- Species (all) --</option>
+        <option value="Cow">Cow</option>
+        <option value="Chicken">Chicken</option>
+        <option value="Pig">Pig</option>
+        <option value="Sheep">Sheep</option>
+        <option value="Goat">Goat</option>
+      </select>
+
+      <select id="searchState">
+        <option value="">-- State (all) --</option>
+        <option value="good">good</option>
+        <option value="normal">normal</option>
+        <option value="bad">bad</option>
+      </select>
+
+      <select id="searchActivity">
+        <option value="">-- Activity (all) --</option>
+        <option value="eating">eating</option>
+        <option value="sleeping">sleeping</option>
+        <option value="walking">walking</option>
+        <option value="resting">resting</option>
+        <option value="drinking">drinking</option>
+      </select>
+
+      <input type="number" id="searchAge" placeholder="Age (years)" min="0">
+
+      <select id="searchFarm">
+        <option value="">-- Farm (all) --</option>
+      </select>
+
+      <button id="btnSearch" class="btn btn-ghost">Search</button>
+    </div>
+
+    <h4>Results</h4>
+    <div id="results"></div>
+  </div>
+</div>
+
+<script src="js/animals.js"></script>
+
+</body>
+</html>
