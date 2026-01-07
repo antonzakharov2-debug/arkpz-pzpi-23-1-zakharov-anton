@@ -1,0 +1,730 @@
+openapi: 3.0.0
+info:
+  title: FarmEnviroControl API
+  description: API for monitoring and managing farms, animals and notifications
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user and attach or create a farm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Registered user (and created/joined farm)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error / user exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Wrong credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/animals:
+    get:
+      summary: Search animals (filtering)
+      parameters:
+        - in: query
+          name: animalNumber
+          schema:
+            type: integer
+          description: Exact animal number
+        - in: query
+          name: species
+          schema:
+            type: string
+            enum: [Cow, Chicken, Pig, Sheep, Goat]
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [good, normal, bad]
+        - in: query
+          name: activity
+          schema:
+            type: string
+            enum: [eating, sleeping, walking, resting, drinking]
+        - in: query
+          name: farm
+          schema:
+            type: string
+          description: Farm id
+        - in: query
+          name: age
+          schema:
+            type: integer
+          description: Age in years
+      responses:
+        '200':
+          description: Array of animals matching filters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Animal'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/animals/add:
+    post:
+      summary: Add a new animal to a farm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddAnimalRequest'
+      responses:
+        '200':
+          description: Animal created (and farm updated)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  animal:
+                    $ref: '#/components/schemas/Animal'
+        '400':
+          description: Validation error / duplicate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # add individual animal operations
+  /api/animals/{id}:
+    get:
+      summary: Get animal by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Animal id
+      responses:
+        '200':
+          description: Animal object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Animal'
+        '404':
+          description: Animal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update an existing animal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Animal id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnimalRequest'
+      responses:
+        '200':
+          description: Animal updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  animal:
+                    $ref: '#/components/schemas/Animal'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Animal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete an animal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Animal id
+      responses:
+        '200':
+          description: Animal deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Animal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # extend farm operations with update/delete (GET already exists)
+  /api/farms/{id}:
+    get:
+      summary: Get farm details (with animals)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Farm id
+      responses:
+        '200':
+          description: Farm object with populated animals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmDetail'
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update farm info
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Farm id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFarmRequest'
+      responses:
+        '200':
+          description: Farm updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  farm:
+                    $ref: '#/components/schemas/Farm'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete farm
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Farm deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # notifications: delete individual and mark as read
+  /api/notifications/{id}:
+    delete:
+      summary: Delete notification by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/notifications/{id}/read:
+    put:
+      summary: Mark notification as read for a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Notification id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+              required:
+                - userId
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/{id}:
+    put:
+      summary: Update user account by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: User id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete user account by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        role:
+          type: string
+          enum: [farmer, worker, admin]
+          default: farmer
+        farmId:
+          type: string
+          nullable: true
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - phone
+        - birthDate
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+
+    UserPublic:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        role:
+          type: string
+        farms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FarmWithAnimals'
+      example:
+        email: user@example.com
+        firstName: John
+        lastName: Doe
+        role: farmer
+
+    AddAnimalRequest:
+      type: object
+      properties:
+        animalNumber:
+          type: integer
+        species:
+          type: string
+          enum: [Cow, Chicken, Pig, Sheep, Goat]
+        gender:
+          type: string
+          enum: [Female, Male]
+        farmId:
+          type: string
+        age:
+          type: integer
+          minimum: 0
+        tagNumber:
+          type: string
+      required:
+        - animalNumber
+        - species
+        - gender
+        - farmId
+
+    Animal:
+      type: object
+      properties:
+        _id:
+          type: string
+        animalNumber:
+          type: integer
+        species:
+          type: string
+        gender:
+          type: string
+        age:
+          type: integer
+        state:
+          type: string
+        activity:
+          type: string
+        tagNumber:
+          type: string
+        notified:
+          type: boolean
+        farm:
+          $ref: '#/components/schemas/FarmRef'
+      example:
+        animalNumber: 12345
+        species: Cow
+        gender: Female
+        age: 3
+        state: normal
+        activity: resting
+
+    Farm:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        animalsCount:
+          type: integer
+      example:
+        _id: "605c5f7f1a4d3c0a3c9b1d2f"
+        name: "Green Valley Farm"
+        animalsCount: 5
+
+    FarmRef:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+
+    FarmWithAnimals:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        animalsCount:
+          type: integer
+        animals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Animal'
+
+    FarmDetail:
+      allOf:
+        - $ref: '#/components/schemas/Farm'
+        - type: object
+          properties:
+            animals:
+              type: array
+              items:
+                $ref: '#/components/schemas/Animal'
+
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        message:
+          type: string
+        farm:
+          $ref: '#/components/schemas/FarmRef'
+        animal:
+          type: object
+          properties:
+            _id:
+              type: string
+            animalNumber:
+              type: integer
+            species:
+              type: string
+        recommendation:
+          type: string
+        recipients:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+      example:
+        message: "Animal #12345 (Cow) on farm \"Green Valley Farm\" reported status \"bad\"."
+        recommendation: "Check water supply and ensure fresh clean water is available."
+        createdAt: "2024-01-01T12:00:00Z"
+
+    UpdateAnimalRequest:
+      type: object
+      properties:
+        species:
+          type: string
+          enum: [Cow, Chicken, Pig, Sheep, Goat]
+        gender:
+          type: string
+          enum: [Female, Male]
+        age:
+          type: integer
+          minimum: 0
+        state:
+          type: string
+          enum: [good, normal, bad]
+        activity:
+          type: string
+          enum: [eating, sleeping, walking, resting, drinking]
+        tagNumber:
+          type: string
+      description: Fields to update for an animal (partial update supported)
+
+    UpdateFarmRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        owner:
+          type: string
+      description: Fields to update for a farm
+
+    NotificationUpdate:
+      type: object
+      properties:
+        readBy:
+          type: array
+          items:
+            type: string
+      description: Notification read metadata
+
+    DeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: "Deleted successfully"
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        role:
+          type: string
+          enum: [farmer, worker, admin]
+        password:
+          type: string
+      description: Fields allowed to update for user
+
+security: []

@@ -1,0 +1,766 @@
+МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+
+
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+
+Кафедра «Програмна інженерія»
+
+
+
+ЗВІТ
+З лаборатоної работи №2 з дисципліни 
+«Аналіз та рефакторинг коду»
+
+
+
+
+
+
+Виконав:	Перевірив:
+ст. гр. ПЗПІ-23-1	ас. кафедри ПІ
+Захаров Антон Юрійович	Дашенков Дмитро Сергійович
+
+
+
+
+
+
+
+
+
+
+Харків 2025 
+
+1.	Вступ
+1.1.	Тема
+
+Розробка бази даних для серверної частини програмної системи та прикладного програмного інтерфейсу (АРІ).
+1.2.	Мета
+
+Розробити базу даних для серверної частини програмної системи та прикладного програмного інтерфейсу.
+
+2.	Розробка діаграм
+2.1.	Розробка UML діаграми прецедентів для серверної частини системи
+У програмній системі FarmEnviroControl передбачено два основні типи користувачів:
+User (фермер або працівник ферми) має можливість:
+-	реєструватися та авторизуватися в системі;
+-	додавати та переглядати ферми, до яких він має доступ;
+-	реєструвати тварин та редагувати їхні характеристики;
+-	здійснювати пошук тварин за різними критеріями;
+-	отримувати сповіщення про стан тварин.
+Admin (адміністратор системи) має розширені повноваження:
+-	керування всіма користувачами системи;
+-	керування фермами та тваринами;
+-	перегляд та видалення сповіщень;
+-	контроль цілісності та коректності даних системи.
+ 
+Рис. 2.1 – UML діаграма прецедентів
+2.2.	Розробка ER діаграми даних
+База даних програмної системи побудована на основі документоорієнтованої СУБД MongoDB та містить такі основні колекції:
+-	users — зберігає інформацію про користувачів (ім’я, email, роль, контактні дані, список ферм).
+-	farms — містить дані про ферми (назва, місцезнаходження, власник, список тварин).
+-	animals — зберігає інформацію про тварин (унікальний номер, вид, стать, вік, стан, активність, ферма).
+-	notifications — містить сповіщення про проблеми зі станом тварин (повідомлення, рекомендації, пов’язані тварини, ферми та отримувачі).
+Зв’язки між сутностями:
+-	Один користувач може мати доступ до декількох ферм.
+-	Кожна ферма містить множину тварин.
+-	Кожна тварина належить лише одній фермі.
+-	Сповіщення пов’язані з конкретною твариною, фермою та списком користувачів-отримувачів.
+ 
+Рис. 2.1 – ER діаграма даних
+
+
+
+
+
+
+
+
+3.	Розробка бази даних
+3.1.	Розроблення бази даних програмної системи Код наведено у додатку А
+Для зберігання даних використовується СУБД MongoDB, яка забезпечує гнучку структуру документів та ефективну роботу з великими обсягами даних.
+Основні колекції бази даних:
+-	users — інформація про користувачів, їхню роль, контактні дані та доступні ферми.
+-	farms — дані про ферми, включаючи власника, список тварин та загальну кількість поголів’я.
+-	animals — картки тварин із характеристиками стану та активності.
+-	notifications — системні сповіщення про критичні або попереджувальні стани тварин.
+Користувачі додають тварин до ферм, до яких мають доступ. У разі зміни стану тварини на критичний (наприклад, "bad"), система автоматично створює сповіщення для всіх користувачів, пов’язаних із відповідною фермою.
+Усі операції з даними виконуються виключно через API серверної частини.
+
+
+
+4.	Розробка серверної частини
+4.1.	Розробка АРІ для взаємодії серверної частини з клієнтами 
+Серверна частина системи реалізована з використанням Node.js, Express та Mongoose. API побудоване відповідно до принципів REST.
+Основні маршрути API:
+-	POST /api/auth/register — реєстрація користувача.
+-	POST /api/auth/login — авторизація користувача.
+-	PUT /api/auth/{id} — оновлення даних користувача.
+-	DELETE /api/auth/{id} — видалення акаунта.
+-	GET /api/farms — отримання списку ферм.
+-	GET /api/farms/{id} — перегляд інформації про ферму.
+-	PUT /api/farms/{id} — оновлення ферми.
+-	DELETE /api/farms/{id} — видалення ферми.
+-	POST /api/animals/add — додавання тварини.
+-	GET /api/animals — пошук тварин.
+-	GET /api/animals/{id} — перегляд тварини.
+-	PUT /api/animals/{id} — оновлення тварини.
+-	DELETE /api/animals/{id} — видалення тварини.
+-	GET /api/notifications — отримання сповіщень.
+-	PUT /api/notifications/{id}/read — позначення сповіщення як прочитаного.
+-	DELETE /api/notifications/{id} — видалення сповіщення.
+Код реалізації наведено у додатку Б
+ 
+Рис. 4.1 – програмна реалізація для АРІ
+4.2.	Контролери та особливості бізнес-логіки
+Основні контролери:
+-	authController — реєстрація, авторизація та керування акаунтами.
+-	farmController — керування фермами (CRUD).
+-	animalController — керування тваринами та автоматичне створення сповіщень.
+-	notificationController — робота зі сповіщеннями.
+При зміні стану тварини на критичний система автоматично створює сповіщення. Видалення тварини автоматично оновлює дані ферми та пов’язані сповіщення. Видалення ферми призводить до видалення всіх її тварин та сповіщень, а також оновлення акаунтів користувачів.
+5.	Висновок
+У процесі виконання роботи було спроєктовано та реалізовано серверну частину програмної системи FarmEnviroControl, яка включає базу даних MongoDB, REST API та механізми автоматичного створення сповіщень. Розроблене рішення забезпечує ефективне керування фермами, тваринами та користувачами, а також може бути масштабоване для використання в різних сценаріях сучасного сільського господарства.
+
+
+
+
+
+Додаток А
+
+//db.js
+const mongoose = require("mongoose");
+
+module.exports = async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log("MongoDB connected");
+
+  // try to remove old incorrect unique index for tagNumber (if exists)
+  try {
+    const col = mongoose.connection.collection("animals");
+    const indexes = await col.indexes();
+    const hasTagIndex = indexes.some((i) => i.key && i.key.tagNumber);
+    if (hasTagIndex) {
+      // index name is usually "tagNumber_1"
+      await col.dropIndex("tagNumber_1");
+      console.log(
+        "Dropped existing tagNumber index to allow partial unique index creation"
+      );
+    }
+  } catch (e) {
+    // ignore: index may not exist or already removed
+  }
+};
+
+//Animal.js
+const mongoose = require("mongoose");
+
+const animalSchema = new mongoose.Schema({
+  animalNumber: {
+    type: Number,
+    required: true,
+    unique: true
+  },
+
+  species: {
+    type: String,
+    enum: ["Cow", "Chicken", "Pig", "Sheep", "Goat"],
+    required: true
+  },
+
+  gender: {
+    type: String,
+    enum: ["Female", "Male"],
+    required: true
+  },
+
+  // age in years
+  age: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+
+  state: {
+    type: String,
+    enum: ["good", "normal", "bad"],
+    default: "normal"
+  },
+
+  activity: {
+    type: String,
+    enum: ["eating", "sleeping", "walking", "resting", "drinking"],
+    default: "resting"
+  },
+
+  // optional tag identifier — do not set null explicitly, so partial index works correctly
+  tagNumber: {
+    type: String
+  },
+
+  // flag to avoid duplicate notifications when state is changed in DB
+  notified: {
+    type: Boolean,
+    default: false
+  },
+
+  farm: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Farm",
+    required: true
+  }
+});
+
+// tagNumber uniqueness only if present (partial index)
+animalSchema.index(
+  { tagNumber: 1 },
+  { unique: true, partialFilterExpression: { tagNumber: { $exists: true, $ne: null } } }
+);
+
+module.exports = mongoose.model("Animal", animalSchema);
+
+//Farm.js
+
+const mongoose = require("mongoose");
+
+const farmSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  location: {
+    type: String
+  },
+  // farm owner reference (optional for existing records)
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  animals: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Animal"
+    }
+  ],
+  animalsCount: {
+    type: Number,
+    default: 0
+  }
+});
+
+module.exports = mongoose.model("Farm", farmSchema);
+
+// Notification.js
+const mongoose = require("mongoose");
+
+module.exports = mongoose.model(
+  "Notification",
+  new mongoose.Schema({
+    message: { type: String, required: true },
+    farm: { type: mongoose.Schema.Types.ObjectId, ref: "Farm" },
+    animal: { type: mongoose.Schema.Types.ObjectId, ref: "Animal" },
+    recommendation: { type: String },
+    recipients: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // users who marked this notification as read
+    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    createdAt: { type: Date, default: Date.now }
+  })
+);
+
+//User.js
+const mongoose = require("mongoose");
+
+const UserSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  password: {
+    type: String,
+    required: true
+  },
+
+  firstName: {
+    type: String,
+    required: true
+  },
+
+  lastName: {
+    type: String,
+    required: true
+  },
+
+  phone: {
+    type: String,
+    required: true
+  },
+
+  birthDate: {
+    type: Date,
+    required: true
+  },
+
+  role: {
+    type: String,
+    enum: ["farmer", "worker", "admin"],
+    default: "farmer"
+  },
+
+  // stores references to user's farms
+  farms: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Farm"
+    }
+  ],
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = mongoose.model("User", UserSchema);
+
+Додаток Б
+
+//server.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const YAML = require("yamljs");
+const swaggerUi = require("swagger-ui-express");
+const path = require("path");
+const mongoose = require("mongoose");
+require("./config/db")();
+
+const app = express();
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.use(express.json());
+
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/animals", require("./routes/animals"));
+app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/farms", require("./routes/farms"));
+
+const swagger = YAML.load(path.join(__dirname, "swagger.yaml"));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swagger));
+
+app.get("/", (req, res) => res.send("Farm Environment Control API"));
+
+app.listen(5000, () => console.log("Server running on port 5000"));
+
+// After mongoose connects, try changeStream; if not supported, fallback to polling
+mongoose.connection.once("open", () => {
+  console.log("MongoDB connection open, initializing watchers...");
+
+  let pollingStarted = false;
+
+  const startPolling = () => {
+    if (pollingStarted) return;
+    pollingStarted = true;
+    console.warn("Starting polling fallback for animal state checks (every 10s)");
+    setInterval(async () => {
+      try {
+        const Animal = require("./models/Animal");
+        const Farm = require("./models/Farm");
+        const User = require("./models/User");
+        const Notification = require("./models/Notification");
+
+        const badAnimals = await Animal.find({ state: "bad", notified: { $ne: true } }).limit(200);
+        if (!badAnimals || badAnimals.length === 0) return;
+
+        for (const doc of badAnimals) {
+          try {
+            const farm = await Farm.findById(doc.farm).select("name");
+            const recommendations = [
+              "Check water supply and ensure fresh clean water is available.",
+              "Inspect feed quality and adjust nutrition; consider veterinary check.",
+              "Check shelter/temperature conditions; improve ventilation or heating.",
+              "Isolate the animal and perform basic health inspection; call veterinarian if needed.",
+              "Increase monitoring frequency and record symptoms for analysis.",
+              "Review vaccination and deworming schedule; update if overdue."
+            ];
+            const rec = recommendations[Math.floor(Math.random() * recommendations.length)];
+            const message = `Animal #${doc.animalNumber} (${doc.species}) on farm "${farm ? farm.name : doc.farm}" reported status "bad". Recommendation: ${rec}`;
+
+            const users = await User.find({ farms: doc.farm }).select("_id").lean();
+            const recipients = users.map(u => u._id);
+            if (!recipients || recipients.length === 0) {
+              console.log(`No users subscribed to farm ${doc.farm} — skipping notification for animal ${doc._id}`);
+            } else {
+              const notif = new Notification({
+                message,
+                farm: doc.farm,
+                animal: doc._id,
+                recommendation: rec,
+                recipients
+              });
+              await notif.save();
+
+              await Animal.updateOne({ _id: doc._id }, { $set: { notified: true } });
+
+              console.log(`Notification created (polling) for farm ${doc.farm}, animal ${doc._id}`);
+            }
+          } catch (e) {
+            console.error("Error creating notification for animal", doc._id, e.message || e);
+          }
+        }
+      } catch (e) {
+        console.error("Polling error:", e.message || e);
+      }
+    }, 10000);
+  };
+
+  (async () => {
+    try {
+      const coll = mongoose.connection.collection("animals");
+      let changeStream;
+      try {
+        changeStream = coll.watch([], { fullDocument: "updateLookup" });
+      } catch (initErr) {
+        // sync failure (e.g. not supported) -> fallback
+        console.warn("ChangeStream initialization failed (sync):", initErr.message || initErr);
+        startPolling();
+        return;
+      }
+
+      // attach error handler immediately to avoid uncaught errors
+      changeStream.on("error", (err) => {
+        console.error("ChangeStream runtime error:", err.message || err);
+        try {
+          changeStream.close().catch(()=>{});
+        } catch(e){ }
+        startPolling();
+      });
+
+      changeStream.on("change", async (change) => {
+        try {
+          if (!["update", "insert", "replace"].includes(change.operationType)) return;
+          const doc = change.fullDocument;
+          if (!doc) return;
+          if (doc.state === "bad" && !doc.notified) {
+            const Notification = require("./models/Notification");
+            const User = require("./models/User");
+            const Farm = require("./models/Farm");
+            const Animal = require("./models/Animal");
+
+            const farm = await Farm.findById(doc.farm).select("name");
+            const recommendations = [
+              "Check water supply and ensure fresh clean water is available.",
+              "Inspect feed quality and adjust nutrition; consider veterinary check.",
+              "Check shelter/temperature conditions; improve ventilation or heating.",
+              "Isolate the animal and perform basic health inspection; call veterinarian if needed.",
+              "Increase monitoring frequency and record symptoms for analysis.",
+              "Review vaccination and deworming schedule; update if overdue."
+            ];
+            const rec = recommendations[Math.floor(Math.random() * recommendations.length)];
+            const message = `Animal #${doc.animalNumber} (${doc.species}) on farm "${farm ? farm.name : doc.farm}" reported status "bad". Recommendation: ${rec}`;
+
+            // select only users that explicitly reference this farm id (use id as-is)
+            const users = await User.find({ farms: doc.farm }).select("_id").lean();
+
+            const recipients = users.map(u => u._id);
+            if (!recipients || recipients.length === 0) {
+              console.log(`No users subscribed to farm ${doc.farm} — skipping notification for animal ${doc._id}`);
+            } else {
+              const notif = new Notification({
+                message,
+                farm: doc.farm,
+                animal: doc._id,
+                recommendation: rec,
+                recipients
+              });
+              await notif.save();
+
+              // mark animal as notified
+              await Animal.updateOne({ _id: doc._id }, { $set: { notified: true } });
+
+              console.log(`Notification created (changeStream) for farm ${doc.farm}, animal ${doc._id}`);
+            }
+          }
+        } catch (err) {
+          console.error("ChangeStream handler error:", err.message || err);
+        }
+      });
+
+      console.log("Animal change stream initialized");
+    } catch (err) {
+      // any unexpected error -> fallback
+      console.warn("ChangeStream initialization failed, falling back to polling. Error:", err.message || err);
+      startPolling();
+    }
+  })();
+});
+
+//routes/animals.js
+const express = require("express");
+const router = express.Router();
+const animalController = require("../controllers/animalController");
+
+router.get("/", animalController.searchAnimals);
+router.post("/add", animalController.addAnimal);
+
+// get/update/delete by id
+router.get("/:id", animalController.getAnimalById);
+router.put("/:id", animalController.updateAnimal);
+router.delete("/:id", animalController.deleteAnimal);
+
+module.exports = router;
+
+//routes/auth.js
+const express = require("express");
+const router = express.Router();
+const authController = require("../controllers/authController");
+
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+
+// update / delete user by id
+router.put("/:id", authController.updateUser);
+router.delete("/:id", authController.deleteUser);
+
+module.exports = router;
+
+//routes/farms.js
+
+const express = require("express");
+const router = express.Router();
+const farmController = require("../controllers/farmController");
+
+router.get("/", farmController.getFarms);
+router.get("/:id", farmController.getFarmDetails);
+router.put("/:id", farmController.updateFarm);
+router.delete("/:id", farmController.deleteFarm);
+
+module.exports = router;
+//routes/notifications.js
+const router = require("express").Router();
+const c = require("../controllers/notificationController");
+
+router.get("/", c.get);
+router.delete("/:id", c.deleteNotification);
+router.put("/:id/read", c.markRead);
+
+module.exports = router;
+
+//controlles/animalController.js
+
+const Animal = require("../models/Animal");
+const Farm = require("../models/Farm");
+const Notification = require("../models/Notification");
+const User = require("../models/User");
+const mongoose = require("mongoose");
+
+exports.addAnimal = async (req, res) => {
+  const { animalNumber, species, gender, farmId, tagNumber, state, activity, age } = req.body;
+
+  const farm = await Farm.findById(farmId);
+  if (!farm) {
+    return res.status(404).json({ message: "Farm not found" });
+  }
+
+  // Check by animalNumber first
+  const existsNumber = await Animal.findOne({ animalNumber });
+  if (existsNumber) {
+    return res.status(400).json({ message: "Animal with this number already exists" });
+  }
+
+  // If tagNumber provided, check uniqueness
+  if (tagNumber) {
+    const existsTag = await Animal.findOne({ tagNumber });
+    if (existsTag) {
+      return res.status(400).json({ message: "tagNumber is already in use" });
+    }
+  }
+
+  const animalData = {
+    animalNumber,
+    species,
+    gender,
+    farm: farm._id
+  };
+  if (tagNumber) animalData.tagNumber = tagNumber;
+  if (state) animalData.state = state;
+  if (activity) animalData.activity = activity;
+  if (typeof age !== "undefined") animalData.age = Number(age);
+
+  const animal = new Animal(animalData);
+
+  try {
+    await animal.save();
+  } catch (err) {
+    if (err.code === 11000) {
+      if (err.keyPattern && err.keyPattern.tagNumber) {
+        return res.status(400).json({ message: "tagNumber is already in use" });
+      }
+      if (err.keyPattern && err.keyPattern.animalNumber) {
+        return res.status(400).json({ message: "animalNumber already exists" });
+      }
+    }
+    return res.status(500).json({ message: "Error creating animal", error: err.message });
+  }
+
+  farm.animals.push(animal._id);
+  farm.animalsCount = farm.animals.length;
+  await farm.save();
+
+  // If state indicates problem, create notification for all users of this farm
+  try {
+    if (animal.state === "bad" && !animal.notified) {
+      const recommendations = [
+        "Check water supply and ensure fresh clean water is available.",
+        "Inspect feed quality and adjust nutrition; consider veterinary check.",
+        "Check shelter/temperature conditions; improve ventilation or heating.",
+        "Isolate the animal and perform basic health inspection; call veterinarian if needed.",
+        "Increase monitoring frequency and record symptoms for analysis.",
+        "Review vaccination and deworming schedule; update if overdue."
+      ];
+
+      const rec = recommendations[Math.floor(Math.random() * recommendations.length)];
+      const message = `Animal #${animal.animalNumber} (${animal.species}) on farm "${farm.name}" reported status "bad". Recommendation: ${rec}`;
+
+      // select only users that explicitly reference this farm id (pass id as-is)
+      const users = await User.find({ farms: farm._id }).select("_id").lean();
+
+      const recipients = users.map(u => u._id);
+
+      if (!recipients || recipients.length === 0) {
+        console.log(`No users subscribed to farm ${farm._id} — skipping notification for animal ${animal._id}`);
+      } else {
+        const notif = new Notification({
+          message,
+          farm: farm._id,
+          animal: animal._id,
+          recommendation: rec,
+          recipients
+        });
+        await notif.save();
+
+        // mark animal as notified to avoid duplicate notifications
+        animal.notified = true;
+        await animal.save();
+        console.log(`Notification created for farm ${farm._id}, animal ${animal._id}`);
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification error:", notifErr);
+  }
+
+  res.json({
+    message: "Animal added successfully",
+    animal
+  });
+};
+
+// searchAnimals unchanged
+exports.searchAnimals = async (req, res) => {
+  try {
+    const { animalNumber, species, state, activity, farm, age } = req.query;
+    const filter = {};
+
+    if (animalNumber) filter.animalNumber = Number(animalNumber);
+    if (species) filter.species = species;
+    if (state) filter.state = state;
+    if (activity) filter.activity = activity;
+    if (farm) filter.farm = farm;
+    if (typeof age !== "undefined" && age !== "") filter.age = Number(age);
+
+    const animals = await Animal.find(filter).populate("farm").limit(200);
+    res.json(animals);
+  } catch (err) {
+    res.status(500).json({ message: "Error searching animals", error: err.message });
+  }
+};
+
+exports.getAnimalById = async (req, res) => {
+  try {
+    const animal = await Animal.findById(req.params.id).populate("farm");
+    if (!animal) return res.status(404).json({ message: "Animal not found" });
+    res.json(animal);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching animal", error: err.message });
+  }
+};
+
+exports.updateAnimal = async (req, res) => {
+  try {
+    const updates = {};
+    const allowed = ["species","gender","age","state","activity","tagNumber"];
+    allowed.forEach(k => {
+      if (typeof req.body[k] !== "undefined") updates[k] = req.body[k];
+    });
+
+    const animal = await Animal.findById(req.params.id);
+    if (!animal) return res.status(404).json({ message: "Animal not found" });
+
+    // apply updates
+    Object.assign(animal, updates);
+    await animal.save();
+
+    // if became 'bad' and not notified -> create notification (same logic as add)
+    if (animal.state === "bad" && !animal.notified) {
+      const farm = await Farm.findById(animal.farm).select("name");
+      const recommendations = [
+        "Check water supply and ensure fresh clean water is available.",
+        "Inspect feed quality and adjust nutrition; consider veterinary check.",
+        "Check shelter/temperature conditions; improve ventilation or heating.",
+        "Isolate the animal and perform basic health inspection; call veterinarian if needed.",
+        "Increase monitoring frequency and record symptoms for analysis.",
+        "Review vaccination and deworming schedule; update if overdue."
+      ];
+      const rec = recommendations[Math.floor(Math.random()*recommendations.length)];
+      const message = `Animal #${animal.animalNumber} (${animal.species}) on farm "${farm ? farm.name : animal.farm}" reported status "bad". Recommendation: ${rec}`;
+      const users = await User.find({ farms: animal.farm }).select("_id").lean();
+      const recipients = users.map(u => u._id);
+      if (recipients.length > 0) {
+        await Notification.create({ message, farm: animal.farm, animal: animal._id, recommendation: rec, recipients });
+        animal.notified = true;
+        await animal.save();
+      } else {
+        console.log(`No subscribers for farm ${animal.farm} — skip notification`);
+      }
+    }
+
+    res.json({ message: "Animal updated", animal });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating animal", error: err.message });
+  }
+};
+
+exports.deleteAnimal = async (req, res) => {
+  try {
+    const animal = await Animal.findById(req.params.id);
+    if (!animal) return res.status(404).json({ message: "Animal not found" });
+
+    // remove reference from farm
+    if (animal.farm) {
+      await Farm.updateOne({ _id: animal.farm }, { $pull: { animals: animal._id } });
+      // recalc animalsCount
+      const farm = await Farm.findById(animal.farm);
+      if (farm) {
+        farm.animalsCount = farm.animals ? farm.animals.length : 0;
+        await farm.save();
+      }
+    }
+
+    await Notification.deleteMany({ animal: animal._id }).catch(()=>{});
+    await animal.deleteOne();
+
+    res.json({ message: "Animal deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting animal", error: err.message });
+  }
+};
+
+// Інші контролери (authController, farmController, notificationController) аналогічно створюються з CRUD операціями та логікою отримання даних
+
+Посилання на відео: https://youtu.be/rI2qalsOfXw

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Register — FarmEnviroControl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="site-header">
+    <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl</h1></div>
+    <nav><a href="index.html" class="muted">Sign in</a></nav>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Register</h2>
+      <div class="muted">Create an account and join or create a farm</div>
+
+      <div style="margin-top:12px">
+        <div class="row">
+          <input id="firstName" placeholder="First name" type="text" required>
+          <input id="lastName" placeholder="Last name" type="text" required>
+        </div>
+
+        <div class="row">
+          <input id="phone" placeholder="Phone number" type="text" required>
+          <input id="birthDate" type="date" placeholder="Date of birth" required>
+        </div>
+
+        <input id="email" placeholder="Email" type="email" required>
+        <input id="password" type="password" placeholder="Password" required>
+
+        <div class="row">
+          <select id="role">
+            <option value="farmer">Farmer</option>
+            <option value="worker">Worker</option>
+          </select>
+
+          <select id="farmId">
+            <option value="">— Create new farm —</option>
+          </select>
+        </div>
+
+        <button id="registerBtn" class="btn btn-primary">Register</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    const API_BASE = "http://localhost:5000/api";
+    // load farms into select
+    (async function loadFarms() {
+      try {
+        const res = await fetch(API_BASE + "/farms");
+        const farms = await res.json();
+        const sel = document.getElementById("farmId");
+        farms.forEach(f => {
+          const opt = document.createElement("option");
+          opt.value = f._id;
+          opt.textContent = f.name;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        // ignore if fetch fails
+      }
+    })();
+
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      const payload = {
+        firstName: document.getElementById("firstName").value.trim(),
+        lastName: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        birthDate: document.getElementById("birthDate").value,
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        role: document.getElementById("role").value,
+        farmId: document.getElementById("farmId").value || null
+      };
+
+      // basic client-side validation
+      if (!payload.email || !payload.password || !payload.firstName || !payload.lastName) {
+        alert("Please fill required fields");
+        return;
+      }
+
+      try {
+        const response = await post("/auth/register", payload);
+        if (response.user) {
+          localStorage.setItem("user", JSON.stringify(response.user));
+          location.href = "profile.html";
+        } else {
+          alert(response.message || "Registration error");
+        }
+      } catch (err) {
+        alert("Network or server error");
+      }
+    });
+  </script>
+</body>
+</html>

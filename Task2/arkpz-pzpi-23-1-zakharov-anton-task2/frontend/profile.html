@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Profile — FarmEnviroControl</title>
+</head>
+<body>
+<div class="site-header">
+  <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl</h1></div>
+  <nav><a href="notifications.html" class="muted">Notifications</a></nav>
+</div>
+<div class="container">
+  <div class="card">
+    <h2>Profile</h2>
+    <div class="muted">Welcome</div>
+    <div style="margin-top:12px">
+      <p><b>Email:</b> <span id="email"></span></p>
+      <p><b>Role:</b> <span id="role"></span></p>
+      <p><b>Name:</b> <span id="name"></span></p>
+      <p><b>Phone:</b> <span id="phone"></span></p>
+      <p><b>Date of birth:</b> <span id="birth"></span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Search my animals</h3>
+    <div class="row" style="gap:8px">
+      <input id="acctSearchNumber" placeholder="Number" type="number">
+      <select id="acctSearchSpecies">
+        <option value="">All species</option>
+        <option value="Cow">Cow</option>
+        <option value="Chicken">Chicken</option>
+        <option value="Pig">Pig</option>
+        <option value="Sheep">Sheep</option>
+        <option value="Goat">Goat</option>
+      </select>
+      <select id="acctSearchState">
+        <option value="">All state</option>
+        <option value="good">good</option>
+        <option value="normal">normal</option>
+        <option value="bad">bad</option>
+      </select>
+      <select id="acctSearchActivity">
+        <option value="">All activity</option>
+        <option value="eating">eating</option>
+        <option value="sleeping">sleeping</option>
+        <option value="walking">walking</option>
+        <option value="resting">resting</option>
+        <option value="drinking">drinking</option>
+      </select>
+      <input id="acctSearchAge" type="number" placeholder="Age" min="0">
+      <button id="acctBtnSearch" class="btn btn-ghost">Search</button>
+    </div>
+  </div>
+
+  <div id="farmsContainer" class="card"></div>
+  <div style="text-align:right"><button id="logoutBtn" class="btn btn-ghost">Logout</button></div>
+</div>
+
+<script>
+const API = "http://localhost:5000/api";
+let user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) location.href = "index.html";
+
+email.innerText = user.email;
+role.innerText = user.role;
+document.getElementById("name").innerText = user.firstName + " " + user.lastName;
+document.getElementById("phone").innerText = user.phone;
+document.getElementById("birth").innerText = new Date(user.birthDate).toLocaleDateString();
+
+const farmsContainer = document.getElementById("farmsContainer");
+
+// рендер фермы/таблицы животных
+function renderFarms() {
+  farmsContainer.innerHTML = "";
+  (user.farms || []).forEach(f => {
+    const div = document.createElement("div");
+    div.className = "farm-block";
+    const animals = f.animals || [];
+
+    div.innerHTML = `
+      <h4>${f.name} (${f.animalsCount || 0} animals)</h4>
+      <table border="1" class="animals-table" style="width:100%;margin-top:8px">
+        <thead><tr><th></th><th>Number</th><th>Age</th><th>Species</th><th>Gender</th><th>State</th><th>Activity</th></tr></thead>
+        <tbody>
+          ${(animals.map(a => `<tr data-number="${a.animalNumber}" data-species="${a.species}" data-age="${a.age||0}" data-state="${a.state}" data-activity="${a.activity}"><td><input type="checkbox" /></td><td>${a.animalNumber}</td><td>${a.age || 0}</td><td>${a.species}</td><td>${a.gender}</td><td>${a.state}</td><td>${a.activity}</td></tr>`)).join("")}
+        </tbody>
+      </table>
+
+      <h5>Add animal to this farm</h5>
+      <form class="addForm">
+        <input name="animalNumber" type="number" placeholder="Animal number" required>
+        <input name="age" type="number" placeholder="Age (years)" min="0">
+        <select name="species">
+          <option value="Cow">Cow</option>
+          <option value="Chicken">Chicken</option>
+          <option value="Pig">Pig</option>
+          <option value="Sheep">Sheep</option>
+          <option value="Goat">Goat</option>
+        </select>
+        <select name="gender">
+          <option value="Female">Female</option>
+          <option value="Male">Male</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+      <hr />
+    `;
+    farmsContainer.appendChild(div);
+
+    // привязать обработчики поиска и добавления
+    const addForm = div.querySelector(".addForm");
+    addForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(addForm);
+      const payload = {
+        animalNumber: Number(fd.get("animalNumber")),
+        species: fd.get("species"),
+        gender: fd.get("gender"),
+        age: fd.get("age") ? Number(fd.get("age")) : undefined,
+        farmId: f._id
+      };
+      const res = await fetch(API + "/animals/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      alert(result.message);
+      if (res.ok && result.animal) {
+        // добавить в local user и перерендерить
+        const idx = user.farms.findIndex(x => String(x._id || x) === String(f._id));
+        if (idx !== -1) {
+          user.farms[idx].animals = user.farms[idx].animals || [];
+          user.farms[idx].animals.push({
+            _id: result.animal._id,
+            animalNumber: result.animal.animalNumber,
+            age: result.animal.age || 0,
+            species: result.animal.species,
+            gender: result.animal.gender,
+            state: result.animal.state,
+            activity: result.animal.activity
+          });
+          user.farms[idx].animalsCount = (user.farms[idx].animalsCount || 0) + 1;
+        }
+        localStorage.setItem("user", JSON.stringify(user));
+        renderFarms();
+      }
+    });
+  });
+}
+
+renderFarms();
+
+// filter handler for account search (applies to all farm tables)
+document.getElementById("acctBtnSearch").addEventListener("click", (e) => {
+  e.preventDefault();
+  const qNum = (document.getElementById("acctSearchNumber").value || "").toString().trim().toLowerCase();
+  const qSpec = (document.getElementById("acctSearchSpecies").value || "").toLowerCase();
+  const qState = (document.getElementById("acctSearchState").value || "").toLowerCase();
+  const qAct = (document.getElementById("acctSearchActivity").value || "").toLowerCase();
+  const qAge = document.getElementById("acctSearchAge").value;
+
+  document.querySelectorAll("#farmsContainer .animals-table tbody tr").forEach(tr => {
+    const num = (tr.dataset.number || "").toString().toLowerCase();
+    const spec = (tr.dataset.species || "").toLowerCase();
+    const state = (tr.dataset.state || "").toLowerCase();
+    const act = (tr.dataset.activity || "").toLowerCase();
+    const age = tr.dataset.age ? Number(tr.dataset.age) : 0;
+
+    let ok = true;
+    if (qNum && !num.includes(qNum)) ok = false;
+    if (qSpec && spec !== qSpec) ok = false;
+    if (qState && state !== qState) ok = false;
+    if (qAct && act !== qAct) ok = false;
+    if (qAge && Number.isFinite(Number(qAge)) && age !== Number(qAge)) ok = false;
+
+    tr.style.display = ok ? "" : "none";
+  });
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem("user");
+  location.href = "index.html";
+});
+</script>
+</body>
+</html>
