@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Notifications — FarmEnviroControl</title>
+</head>
+<body>
+<div class="site-header">
+  <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl</h1></div>
+  <nav><a href="profile.html" class="muted">Profile</a></nav>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Notifications</h2>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:5000/api";
+const user = JSON.parse(localStorage.getItem("user"));
+
+async function load() {
+  try {
+    const userId = user ? (user._id || user.id) : null;
+    const url = userId ? `${API}/notifications?userId=${userId}` : `${API}/notifications`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const list = document.getElementById("list");
+    if (!Array.isArray(data) || data.length === 0) {
+      list.innerHTML = "<p>No notifications</p>";
+      return;
+    }
+
+    list.innerHTML = data.map(n => `
+      <div style="margin-bottom:10px;padding:10px;border-radius:8px;background:#fff;border:1px solid rgba(20,30,50,0.04)">
+        <div style="font-weight:600">${n.message}</div>
+        ${n.recommendation ? `<div style="margin-top:6px;color:#555"><b>Recommendation:</b> ${n.recommendation}</div>` : ""}
+        <div style="margin-top:6px;font-size:12px;color:#888">
+          Farm: ${n.farm && n.farm.name ? n.farm.name : "-"}${n.animal && n.animal.animalNumber ? ` • Animal #${n.animal.animalNumber}` : ""}
+          • ${new Date(n.createdAt).toLocaleString()}
+        </div>
+      </div>
+    `).join("");
+  } catch (e) {
+    document.getElementById("list").innerText = "Error loading notifications";
+  }
+}
+load();
+</script>
+</body>
+</html>

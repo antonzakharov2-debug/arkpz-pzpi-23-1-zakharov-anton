@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Admin Panel — FarmEnviroControl</title>
+  <style>
+    .admin-tabs { display: flex; gap: 10px; margin-bottom: 18px; }
+    .admin-tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: #f4f7fb;
+      color: #2c7be5;
+      font-weight: 600;
+      border-radius: 10px 10px 0 0;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: background 0.15s, border-bottom 0.15s;
+    }
+    .admin-tab-btn.active {
+      background: #fff;
+      border-bottom: 2px solid #2c7be5;
+      color: #172b4d;
+    }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+    .admin-form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .admin-form-row > * { flex: 1 1 180px; min-width: 120px; }
+    .admin-form-row button { flex: 0 0 auto; }
+    .admin-title { margin-bottom: 8px; }
+    @media (max-width: 720px) {
+      .admin-form-row { flex-direction: column; }
+      .admin-tabs { flex-direction: column; gap: 0; }
+      .admin-tab-btn { border-radius: 10px 10px 0 0; margin-bottom: 2px; }
+    }
+  </style>
+</head>
+<body>
+<div class="site-header">
+  <div class="logo"><div class="mark">F</div><h1>FarmEnviroControl — Admin</h1></div>
+  <nav><a href="index.html" class="muted" onclick="logout()">Logout</a></nav>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" onclick="showTab('users')">Users</button>
+      <button class="admin-tab-btn" onclick="showTab('animals')">Animals</button>
+      <button class="admin-tab-btn" onclick="showTab('farms')">Farms</button>
+      <button class="admin-tab-btn" onclick="showTab('notifications')">Notifications</button>
+    </div>
+    <div id="admin-users" class="admin-section active"></div>
+    <div id="admin-animals" class="admin-section"></div>
+    <div id="admin-farms" class="admin-section"></div>
+    <div id="admin-notifications" class="admin-section"></div>
+  </div>
+</div>
+<script src="js/admin.js"></script>
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
+  if (tab === 'users') {
+    document.querySelector('.admin-tab-btn:nth-child(1)').classList.add('active');
+    document.getElementById('admin-users').classList.add('active');
+    if (window.loadUsers) loadUsers();
+  }
+  if (tab === 'animals') {
+    document.querySelector('.admin-tab-btn:nth-child(2)').classList.add('active');
+    document.getElementById('admin-animals').classList.add('active');
+    if (window.loadAnimals) loadAnimals();
+  }
+  if (tab === 'farms') {
+    document.querySelector('.admin-tab-btn:nth-child(3)').classList.add('active');
+    document.getElementById('admin-farms').classList.add('active');
+    if (window.loadFarms) loadFarms();
+  }
+  if (tab === 'notifications') {
+    document.querySelector('.admin-tab-btn:nth-child(4)').classList.add('active');
+    document.getElementById('admin-notifications').classList.add('active');
+    if (window.loadNotifications) loadNotifications();
+  }
+}
+// Показати користувачів за замовчуванням
+showTab('users');
+</script>
+</body>
+</html>
